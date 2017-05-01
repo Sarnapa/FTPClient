@@ -12,8 +12,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->localView->setModel(localModel);
     remoteModel = new RemoteListModel(this);
     ui->remoteView->setModel(remoteModel);
-
-    //connect(, SIGNAL(), this, SLOT(connectToSystem(QString&,QString&,QString&))
 }
 
 MainWindow::~MainWindow()
@@ -25,7 +23,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_actionConnect_triggered()
 {
-    LoggingForm *logForm = new LoggingForm(this);
+    logForm = new LoggingForm(this);
+    connect(this, SIGNAL(connectSignal(QString&,QString&,QString&)), this, SLOT(connectToSystem(QString&,QString&,QString&)));
     logForm->show();
 }
 
@@ -56,5 +55,31 @@ void MainWindow::on_actionCancel_triggered()
 
 void MainWindow::connectToSystem(QString &login, QString &password, QString &address)
 {
-    QMessageBox::information(this, "lol", login + " " + password + " " + address);
+    if(remoteModel->connectToSystem(login, password, address))
+    {
+        connectionStatus = true;
+        updateWindow();
+        logForm->close();
+    }
+    else
+    {
+        QMessageBox::warning(logForm, "Logging Error", "Login and/or password wrong.");
+    }
+}
+
+void MainWindow::updateWindow()
+{
+    QList<QAction *> &actionsList = ui->mainToolBar->actions();
+    for(int i = 0; i < actionsList.size(); ++i)
+        actionsList.at(i)->setEnabled(!actionsList.at(i)->isEnabled());
+    ui->downloadButton->setEnabled(ui->downloadButton->isEnabled());
+    ui->uploadButton->setEnabled(ui->uploadButton->isEnabled());
+    if(connectionStatus)
+    {
+        statusLabel = new QLabel();
+        statusLabel->setText("Connected as: " + remoteModel->userLogin());
+        ui->statusBar->addPermanentWidget(statusLabel);
+    }
+    else
+        ui->statusBar->removeWidget(statusLabel);
 }

@@ -1,10 +1,55 @@
 #include "RemoteListModel.h"
 
+class MyFileInfo
+{
+public:
+    MyFileInfo(QString name, qlonglong size, QDateTime lastModified): fileName(name), fileSize(size), fileLastModified(lastModified)
+    {}
+    ~MyFileInfo()
+    {}
+
+    QString getFileName() const
+    {
+        return fileName;
+    }
+
+    //QVariant supports qlonglong and qulonglong. As the documentation says, these are the same as qint64 and quint64.
+    qlonglong getFileSize() const
+    {
+        return fileSize;
+    }
+
+    QDateTime getFileLastModified() const
+    {
+        return fileLastModified;
+    }
+
+    void setFileName(QString fileName)
+    {
+        this->fileName = fileName;
+    }
+
+    void setFileSize(qlonglong fileSize)
+    {
+        this->fileSize = fileSize;
+    }
+
+    void setFileLastModified(QDateTime fileLastModified)
+    {
+        this->fileLastModified = fileLastModified;
+    }
+
+private:
+    QString fileName;
+    qlonglong fileSize;
+    QDateTime fileLastModified;
+};
+
 RemoteListModel::RemoteListModel(QObject *parent)
-    : QAbstractListModel(parent)
+    : QAbstractItemModel(parent)
 {
     iconProvider = new QFileIconProvider();
-    filesList = new QList<QFileInfo>();
+    filesList = new QList<MyFileInfo>();
 }
 
 RemoteListModel::~RemoteListModel()
@@ -36,6 +81,14 @@ int RemoteListModel::rowCount(const QModelIndex &parent) const
         return 0;
     return filesList->size();
 }
+
+int RemoteListModel::columnCount(const QModelIndex &parent) const
+{
+    if (parent.isValid())
+        return 0;
+    return COLUMNS_COUNT;
+}
+
 
 //Returns the data stored under the given role for the item referred to by the index.
 QVariant RemoteListModel::data(const QModelIndex &index, int role) const
@@ -70,13 +123,44 @@ QVariant RemoteListModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
-// Sets the role data for the item at index to value.
+QModelIndex RemoteListModel::index(int row, int column, const QModelIndex &parent) const
+{
+    if (parent.isValid()) return QModelIndex();
+
+    if(row >= filesList->size() || column >= COLUMNS_COUNT || column < 0 || row < 0)
+        return QModelIndex();
+
+    return createIndex(row, column, nullptr);
+}
+
+QModelIndex RemoteListModel::parent(const QModelIndex &index) const
+{
+    return QModelIndex();
+}
+
+
 bool RemoteListModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (data(index, role) != value) {
-        // FIXME: Implement me!
-        emit dataChanged(index, index, QVector<int>() << role);
-        return true;
+    if(index.isValid() && role == Qt::EditRole)
+    {
+        if (data(index, role) != value)
+        {
+            MyFileInfo file = filesList->at(index.row());
+            switch (index.column())
+            {
+                case 0:
+                    file.setFileName(value.toString());
+                    break;
+                case 1:
+                    file.setFileSize(value.toLongLong());
+                    break;
+                case 2:
+                    file.setFileLastModified(value.toDateTime());
+                    break;
+            }
+            emit dataChanged(index, index);
+            return true;
+        }
     }
     return false;
 }
@@ -92,7 +176,7 @@ Qt::ItemFlags RemoteListModel::flags(const QModelIndex &index) const
 
     // The default implementation from QAbstractTableModel returns Qt::ItemIsSelectable | Qt::ItemIsEnabled.
     Qt::ItemFlags flags = QAbstractItemModel::flags(index);
-    flags |= Qt::ItemIsDragEnabled;
+    //flags |= Qt::ItemIsDragEnabled;
     if (index.column() == 0)
     {
        flags |= Qt::ItemIsEditable;
@@ -101,7 +185,7 @@ Qt::ItemFlags RemoteListModel::flags(const QModelIndex &index) const
 }
 
 // Calling beginInsertRows() and endInsertRows() to notify other components that the model has changed.
-bool RemoteListModel::insertRows(QList<QFileInfo> *newFiles, int count)
+bool RemoteListModel::insertRows(QList<MyFileInfo> *newFiles, int count)
 {
     int filesCount = filesList->size();
 
@@ -110,9 +194,15 @@ bool RemoteListModel::insertRows(QList<QFileInfo> *newFiles, int count)
 
     beginInsertRows(QModelIndex(), filesCount, filesCount + count - 1);
     for(int i = 0; i < newFiles->size(); ++i)
-        filesList->append(newFiles->at(i));
+    {
+        MyFileInfo file = newFiles->at(i);
+        int idx = findFile(file.getFileName());
+        if(idx != -1)
+            filesList->replace(idx, file);
+        else
+            filesList->append(file);
+    }
     endInsertRows();
-
     return true;
 }
 
@@ -130,21 +220,48 @@ bool RemoteListModel::removeRow(QString fileName)
     return true;
 }
 
+bool RemoteListModel::connectToSystem(QString &login, QString &password, QString &address)
+{
+    if(login == adminLogin && password == adminPassword)
+    {
+        isConnected = true;
+        this->login = login;
+        this->passwd = password;
+        this->address = address;
+        QList<MyFileInfo> *list = getFilesFromSystem();
+        insertRows(list, list->size());
+        delete list;
+    }
+    return isConnected;
+}
+
 int RemoteListModel::findFile(QString fileName) const
 {
     for(int i = 0; i < filesList->size(); ++i)
     {
-        if(filesList->at(i).fileName() == fileName)
+        if(filesList->at(i).getFileName() == fileName)
             return i;
     }
     return -1;
+}
+
+QList<MyFileInfo>* RemoteListModel::getFilesFromSystem()
+{
+    QList<MyFileInfo>* list = new QList<MyFileInfo>();
+    for(int i = 0; i < 5; ++i)
+    {
+        MyFileInfo file(QString("File") + QString::number(i), (qlonglong)i*1024 , QDateTime::currentDateTime());
+        //QMessageBox::information(NULL, "", file.getFileName());
+        list->append(file);
+    }
+    return list;
 }
 
 QString RemoteListModel::fileName(const QModelIndex &index) const
 {
     if (!connected())
         return QString();
-    return filesList->at(index.row()).fileName();
+    return filesList->at(index.row()).getFileName();
 }
 
 QIcon RemoteListModel::fileIcon(const QModelIndex &index) const
@@ -159,8 +276,8 @@ QString RemoteListModel::fileSize(const QModelIndex &index) const
     if (!connected())
         return QString();
 
-    const QFileInfo &file = filesList->at(index.row());
-    quint64 bytes = file.size();
+    const MyFileInfo &file = filesList->at(index.row());
+    qlonglong bytes = file.getFileSize();
     if (bytes >= 1000000000)
         return QLocale().toString(bytes / 1000000000) + QString(" GB");
     if (bytes >= 1000000)
@@ -175,8 +292,23 @@ QString RemoteListModel::lastModifiedDate(const QModelIndex &index) const
     if (!connected())
         return QString();
 
-    const QFileInfo &file = filesList->at(index.row());
+    const MyFileInfo &file = filesList->at(index.row());
 
-    return file.lastModified().toString(Qt::LocalDate);
+    return file.getFileLastModified().toString(Qt::LocalDate);
+}
+
+QString RemoteListModel::userLogin() const
+{
+    return login;
+}
+
+QString RemoteListModel::userPasswd() const
+{
+    return passwd;
+}
+
+QString RemoteListModel::systemAddress() const
+{
+    return address;
 }
 

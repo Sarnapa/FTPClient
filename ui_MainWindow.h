@@ -17,7 +17,6 @@
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QHeaderView>
-#include <QtWidgets/QListView>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
@@ -46,9 +45,9 @@ public:
     QHBoxLayout *horizontalLayout;
     QTreeView *localView;
     QVBoxLayout *verticalLayout;
-    QPushButton *updateButton;
+    QPushButton *uploadButton;
     QPushButton *downloadButton;
-    QListView *remoteView;
+    QTreeView *remoteView;
     QProgressBar *progressBar;
     QMenuBar *menuBar;
     QMenu *mainMenu;
@@ -312,7 +311,8 @@ public:
 "    background-color: #d7801a;\n"
 "    width: 10px;\n"
 "    margin: 0.5px;\n"
-"}"));
+"}\n"
+""));
         MainWindow->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
         actionConnect = new QAction(MainWindow);
         actionConnect->setObjectName(QStringLiteral("actionConnect"));
@@ -370,11 +370,11 @@ public:
         verticalLayout = new QVBoxLayout();
         verticalLayout->setSpacing(6);
         verticalLayout->setObjectName(QStringLiteral("verticalLayout"));
-        updateButton = new QPushButton(centralWidget);
-        updateButton->setObjectName(QStringLiteral("updateButton"));
-        updateButton->setEnabled(false);
+        uploadButton = new QPushButton(centralWidget);
+        uploadButton->setObjectName(QStringLiteral("uploadButton"));
+        uploadButton->setEnabled(false);
 
-        verticalLayout->addWidget(updateButton);
+        verticalLayout->addWidget(uploadButton);
 
         downloadButton = new QPushButton(centralWidget);
         downloadButton->setObjectName(QStringLiteral("downloadButton"));
@@ -385,8 +385,9 @@ public:
 
         horizontalLayout->addLayout(verticalLayout);
 
-        remoteView = new QListView(centralWidget);
+        remoteView = new QTreeView(centralWidget);
         remoteView->setObjectName(QStringLiteral("remoteView"));
+        remoteView->setRootIsDecorated(false);
 
         horizontalLayout->addWidget(remoteView);
 
@@ -465,7 +466,7 @@ public:
         actionRename->setText(QApplication::translate("MainWindow", "Rename", Q_NULLPTR));
         actionDelete->setText(QApplication::translate("MainWindow", "Delete", Q_NULLPTR));
         actionCancel->setText(QApplication::translate("MainWindow", "&Cancel", Q_NULLPTR));
-        updateButton->setText(QApplication::translate("MainWindow", "-&>", Q_NULLPTR));
+        uploadButton->setText(QApplication::translate("MainWindow", "-&>", Q_NULLPTR));
         downloadButton->setText(QApplication::translate("MainWindow", "&<-", Q_NULLPTR));
         mainMenu->setTitle(QApplication::translate("MainWindow", "Main Menu", Q_NULLPTR));
         menuFiles->setTitle(QApplication::translate("MainWindow", "Files", Q_NULLPTR));

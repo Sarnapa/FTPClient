@@ -264,7 +264,8 @@ QProgressBar::chunk
     background-color: #d7801a;
     width: 10px;
     margin: 0.5px;
-}</string>
+}
+</string>
   </property>
   <property name="locale">
    <locale language="English" country="UnitedStates"/>
@@ -285,7 +286,7 @@ QProgressBar::chunk
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QPushButton" name="updateButton">
+           <widget class="QPushButton" name="uploadButton">
             <property name="enabled">
              <bool>false</bool>
             </property>
@@ -307,7 +308,11 @@ QProgressBar::chunk
          </layout>
         </item>
         <item>
-         <widget class="QListView" name="remoteView"/>
+         <widget class="QTreeView" name="remoteView">
+          <property name="rootIsDecorated">
+           <bool>false</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>

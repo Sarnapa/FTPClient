@@ -32,7 +32,7 @@ void LoggingForm::on_connectButton_clicked()
     QString &login = ui->loginLineEdit->text();
     QString &password = ui->passwordLineEdit->text();
     QString &address = ui->addressLineEdit->text();
-    emit qobject_cast<MainWindow*>(this->parent())->connectToSystem(login, password, address);
+    emit qobject_cast<MainWindow*>(this->parent())->connectSignal(login, password, address);
 }
 
 void LoggingForm::activateConnectButton()
