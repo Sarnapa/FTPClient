@@ -20,9 +20,6 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-signals:
-    void connectSignal(QString &login, QString &password, QString &address);
-
 private:
     Ui::MainWindow *ui;
     QLabel *statusLabel;
@@ -40,7 +37,11 @@ private slots:
     void on_actionRename_triggered();
     void on_actionDelete_triggered();
     void on_actionCancel_triggered();
+
     void connectToSystem(QString &login, QString &password, QString &address);
+    void connectedToSystem(bool connected);
+    void disconnected();
+    void refreshed(bool connected);
 };
 
 #endif // MAINWINDOW_H

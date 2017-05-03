@@ -3,7 +3,6 @@
 
 #include <QDialog>
 #include <QRegExpValidator>
-#include "MainWindow.h"
 
 namespace Ui {
 class LoggingForm;
@@ -16,6 +15,9 @@ class LoggingForm : public QDialog
 public:
     explicit LoggingForm(QWidget *parent = 0);
     ~LoggingForm();
+
+signals:
+    void connectSignal(QString &login, QString &password, QString &address);
 
 private slots:
     void on_connectButton_clicked();

@@ -2,16 +2,11 @@
 #define REMOTELISTMODEL_H
 
 #include <QAbstractListModel>
-#include <QFileInfo>
-#include <QList>
 #include <QFileIconProvider>
-#include <QLocale>
-#include <QDateTime>
-#include <QMessageBox>
+#include <QTimer>
+#include "TCPWorker.h"
 
 #define COLUMNS_COUNT 3
-
-class MyFileInfo;
 
 class RemoteListModel : public QAbstractItemModel
 {
@@ -47,8 +42,8 @@ public:
 
     // Remove data:
     bool removeRow(QString fileName);
+    bool removeAllRows();
 
-    bool connectToSystem(QString &login, QString &password, QString &address);
     inline bool connected() const
     {
       return isConnected;
@@ -62,18 +57,31 @@ public:
     QString userLogin() const;
     QString userPasswd() const;
     QString systemAddress() const;
+
+    void connectToSystem(QString &login, QString &password, QString &address);
+    void disconnect();
+    void refresh();
+signals:
+    void connectedToSystemSignal(bool connected);
+    void disconnectedSignal();
+    void refreshedSignal(bool connected);
 private:
     QList<MyFileInfo> *filesList;
     QFileIconProvider *iconProvider;
     QString login = "";
     QString passwd = "";
     QString address = "";
-    const QString adminLogin = "admin";
-    const QString adminPassword = "admin";
     bool isConnected = false;
+    QThread *workerThread;
+    TCPWorker *worker;
+    //for PAIN
+    QTimer *timer;
 
     int findFile(QString fileName) const;
-    QList<MyFileInfo>* getFilesFromSystem();
+private slots:
+    void connectedToSystem(bool connected, QList<MyFileInfo> *userFiles);
+    void disconnected();
+    void refreshed(bool connected, QList<MyFileInfo> *userList);
 };
 
 #endif // REMOTELISTMODEL_H

@@ -1,61 +1,27 @@
 #include "RemoteListModel.h"
 
-class MyFileInfo
-{
-public:
-    MyFileInfo(QString name, qlonglong size, QDateTime lastModified): fileName(name), fileSize(size), fileLastModified(lastModified)
-    {}
-    ~MyFileInfo()
-    {}
-
-    QString getFileName() const
-    {
-        return fileName;
-    }
-
-    //QVariant supports qlonglong and qulonglong. As the documentation says, these are the same as qint64 and quint64.
-    qlonglong getFileSize() const
-    {
-        return fileSize;
-    }
-
-    QDateTime getFileLastModified() const
-    {
-        return fileLastModified;
-    }
-
-    void setFileName(QString fileName)
-    {
-        this->fileName = fileName;
-    }
-
-    void setFileSize(qlonglong fileSize)
-    {
-        this->fileSize = fileSize;
-    }
-
-    void setFileLastModified(QDateTime fileLastModified)
-    {
-        this->fileLastModified = fileLastModified;
-    }
-
-private:
-    QString fileName;
-    qlonglong fileSize;
-    QDateTime fileLastModified;
-};
-
 RemoteListModel::RemoteListModel(QObject *parent)
     : QAbstractItemModel(parent)
 {
     iconProvider = new QFileIconProvider();
     filesList = new QList<MyFileInfo>();
+    worker = new TCPWorker;
+    workerThread = new QThread;
+    worker->moveToThread(workerThread);
+    workerThread->start();
+    timer = new QTimer();
+    timer->setSingleShot(true);
+    connect(worker, SIGNAL(connectedToSystemSignal(bool,QList<MyFileInfo>*)), this, SLOT(connectedToSystem(bool,QList<MyFileInfo>*)));
+    connect(worker, SIGNAL(disconnectedSignal()), this, SLOT(disconnected()));
+    connect(worker, SIGNAL(refreshedSignal(bool,QList<MyFileInfo>*)), this, SLOT(refreshed(bool,QList<MyFileInfo>*)));
+    connect(timer, SIGNAL(timeout()), worker, SLOT(gotResponse()));
 }
 
 RemoteListModel::~RemoteListModel()
 {
     delete iconProvider;
     delete filesList;
+    delete timer;
 }
 
 QVariant RemoteListModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -150,12 +116,15 @@ bool RemoteListModel::setData(const QModelIndex &index, const QVariant &value, i
             {
                 case 0:
                     file.setFileName(value.toString());
+                    filesList->replace(index.row(), file);
                     break;
                 case 1:
                     file.setFileSize(value.toLongLong());
+                    filesList->replace(index.row(), file);
                     break;
                 case 2:
                     file.setFileLastModified(value.toDateTime());
+                    filesList->replace(index.row(), file);
                     break;
             }
             emit dataChanged(index, index);
@@ -188,14 +157,13 @@ Qt::ItemFlags RemoteListModel::flags(const QModelIndex &index) const
 bool RemoteListModel::insertRows(QList<MyFileInfo> *newFiles, int count)
 {
     int filesCount = filesList->size();
-
     if(!connected() || count < 1)
         return false;
 
     beginInsertRows(QModelIndex(), filesCount, filesCount + count - 1);
     for(int i = 0; i < newFiles->size(); ++i)
     {
-        MyFileInfo file = newFiles->at(i);
+        const MyFileInfo file = newFiles->at(i);
         int idx = findFile(file.getFileName());
         if(idx != -1)
             filesList->replace(idx, file);
@@ -213,26 +181,26 @@ bool RemoteListModel::removeRow(QString fileName)
     if(!connected() || filesCount < 1)
         return false;
 
-    beginInsertRows(QModelIndex(), filesCount, filesCount);
-    filesList->removeAt(findFile(fileName));
-    endInsertRows();
+    int idx = findFile(fileName);
+
+    beginRemoveRows(QModelIndex(), idx, idx);
+    filesList->removeAt(idx);
+    endRemoveRows();
 
     return true;
 }
 
-bool RemoteListModel::connectToSystem(QString &login, QString &password, QString &address)
+bool RemoteListModel::removeAllRows()
 {
-    if(login == adminLogin && password == adminPassword)
-    {
-        isConnected = true;
-        this->login = login;
-        this->passwd = password;
-        this->address = address;
-        QList<MyFileInfo> *list = getFilesFromSystem();
-        insertRows(list, list->size());
-        delete list;
-    }
-    return isConnected;
+    int filesCount = filesList->size();
+
+    if(!connected() || filesCount < 1)
+        return false;
+    beginRemoveRows(QModelIndex(), 0, filesCount - 1);
+    filesList->clear();
+    endRemoveRows();
+
+    return true;
 }
 
 int RemoteListModel::findFile(QString fileName) const
@@ -243,18 +211,6 @@ int RemoteListModel::findFile(QString fileName) const
             return i;
     }
     return -1;
-}
-
-QList<MyFileInfo>* RemoteListModel::getFilesFromSystem()
-{
-    QList<MyFileInfo>* list = new QList<MyFileInfo>();
-    for(int i = 0; i < 5; ++i)
-    {
-        MyFileInfo file(QString("File") + QString::number(i), (qlonglong)i*1024 , QDateTime::currentDateTime());
-        //QMessageBox::information(NULL, "", file.getFileName());
-        list->append(file);
-    }
-    return list;
 }
 
 QString RemoteListModel::fileName(const QModelIndex &index) const
@@ -310,5 +266,69 @@ QString RemoteListModel::userPasswd() const
 QString RemoteListModel::systemAddress() const
 {
     return address;
+}
+
+// Connection Service
+
+void RemoteListModel::connectToSystem(QString &login, QString &password, QString &address)
+{
+    this->login = login;
+    this->passwd = password;
+    this->address = address;
+    timer->start(3000);
+    emit worker->connectToSystemSignal(login, password, address);
+}
+
+void RemoteListModel::disconnect()
+{
+    //qDebug()<<"Liczba plikow przed usunieciem w modelu: "<<QThread::currentThreadId() << " " << filesList->size();
+    emit worker->disconnectSignal();
+}
+
+void RemoteListModel::refresh()
+{
+    timer->start(3000);
+    emit worker->refreshSignal();
+}
+
+void RemoteListModel::connectedToSystem(bool connected, QList<MyFileInfo>* userFiles)
+{
+    //qDebug()<<"connectedToSystem in RemoteListModel: "<<QThread::currentThreadId();
+    isConnected = connected;
+    if(isConnected)
+        insertRows(userFiles, userFiles->size());
+    else
+    {
+        this->login = "";
+        this->passwd = "";
+        this->address = "";
+    }
+    //qDebug()<<"Liczba plikow po dodaniu w modelu: "<<QThread::currentThreadId() << " " << filesList->size();
+    emit connectedToSystemSignal(isConnected);
+}
+
+void RemoteListModel::disconnected()
+{
+    isConnected = false;
+    this->login = "";
+    this->passwd = "";
+    this->address = "";
+    removeAllRows();
+    emit disconnectedSignal();
+}
+
+void RemoteListModel::refreshed(bool connected, QList<MyFileInfo> *userFiles)
+{
+    isConnected = connected;
+    if(isConnected)
+        insertRows(userFiles, userFiles->size());
+    else
+    {
+        this->login = "";
+        this->passwd = "";
+        this->address = "";
+        removeAllRows();
+    }
+    emit refreshedSignal(connected);
 }
 

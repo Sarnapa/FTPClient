@@ -6,6 +6,7 @@ LoggingForm::LoggingForm(QWidget *parent) :
     ui(new Ui::LoggingForm)
 {
     ui->setupUi(this);
+    setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
 
     ui->loginLineEdit->setMaxLength(32);
     ui->passwordLineEdit->setMaxLength(32);
@@ -32,7 +33,8 @@ void LoggingForm::on_connectButton_clicked()
     QString &login = ui->loginLineEdit->text();
     QString &password = ui->passwordLineEdit->text();
     QString &address = ui->addressLineEdit->text();
-    emit qobject_cast<MainWindow*>(this->parent())->connectSignal(login, password, address);
+    setEnabled(false);
+    emit connectSignal(login, password, address);
 }
 
 void LoggingForm::activateConnectButton()
