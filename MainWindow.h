@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QFileSystemModel>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QLabel>
 #include "LoggingForm.h"
@@ -20,6 +21,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+signals:
+    void progressBarValueChanged(int value);
 private:
     Ui::MainWindow *ui;
     QLabel *statusLabel;
@@ -28,8 +31,8 @@ private:
     RemoteListModel *remoteModel;
     LoggingForm *logForm;
     bool connectionStatus = false;
+    bool actionStatus = false;
     void updateWindow();
-
 private slots:
     void on_actionConnect_triggered();
     void on_actionDisconnect_triggered();
@@ -42,6 +45,10 @@ private slots:
     void connectedToSystem(bool connected);
     void disconnected();
     void refreshed(bool connected);
+    void deletedFile(bool connected);
+    void uploadFile();
+    void gotUploadACK(bool connected, int progressBarValue);
+    void downloadFile();
 };
 
 #endif // MAINWINDOW_H

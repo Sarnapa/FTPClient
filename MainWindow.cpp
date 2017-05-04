@@ -16,6 +16,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(remoteModel, SIGNAL(connectedToSystemSignal(bool)), this, SLOT(connectedToSystem(bool)));
     connect(remoteModel, SIGNAL(disconnectedSignal()), this, SLOT(disconnected()));
     connect(remoteModel, SIGNAL(refreshedSignal(bool)), this, SLOT(refreshed(bool)));
+    connect(remoteModel, SIGNAL(deletedFileSignal(bool)), this, SLOT(deletedFile(bool)));
+    connect(ui->uploadButton, SIGNAL(clicked(bool)), this, SLOT(uploadFile()));
+    connect(remoteModel, SIGNAL(gotUploadACKSignal(bool, int)), this, SLOT(gotUploadACK(bool,int)));
+    connect(ui->downloadButton, SIGNAL(clicked(bool)), this, SLOT(downloadFile()));
+    connect(this, SIGNAL(progressBarValueChanged(int)), ui->progressBar, SLOT(setValue(int)));
 }
 
 MainWindow::~MainWindow()
@@ -40,6 +45,7 @@ void MainWindow::updateWindow()
     }
     else
         ui->statusBar->removeWidget(statusLabel);
+    ui->progressBar->setValue(0);
     ui->remoteView->repaint();
 }
 
@@ -52,13 +58,17 @@ void MainWindow::on_actionConnect_triggered()
 
 void MainWindow::on_actionDisconnect_triggered()
 {
-    remoteModel->disconnect();
+    if(!actionStatus)
+        remoteModel->disconnect();
 }
 
 void MainWindow::on_actionRefresh_triggered()
 {
-    setEnabled(false);
-    remoteModel->refresh();
+    if(!actionStatus)
+    {
+        setEnabled(false);
+        remoteModel->refresh();
+    }
 }
 
 void MainWindow::on_actionRename_triggered()
@@ -68,7 +78,15 @@ void MainWindow::on_actionRename_triggered()
 
 void MainWindow::on_actionDelete_triggered()
 {
-
+    if(!actionStatus)
+    {
+        QModelIndex idx = ui->remoteView->currentIndex();
+        if(idx.isValid())
+        {
+            setEnabled(false);
+            remoteModel->deleteFile(idx.row());
+        }
+    }
 }
 
 void MainWindow::on_actionCancel_triggered()
@@ -113,6 +131,66 @@ void MainWindow::refreshed(bool connected)
     }
     setEnabled(true);
 }
+
+void MainWindow::deletedFile(bool connected)
+{
+    connectionStatus = connected;
+    if(connectionStatus == false)
+    {
+        QMessageBox::warning(this, "Error", "Lost connection to system.");
+        updateWindow();
+    }
+    setEnabled(true);
+}
+
+void MainWindow::uploadFile()
+{
+    if(!actionStatus)
+    {
+        ui->progressBar->setValue(0);
+        QModelIndex idx = ui->localView->currentIndex();
+        if(idx.isValid())
+        {
+            QFileInfo fileInfo = localModel->fileInfo(idx);
+            if(fileInfo.isFile() && !fileInfo.isExecutable())
+            {
+                actionStatus = true;
+                remoteModel->uploadFile(fileInfo.fileName(), fileInfo.size(), fileInfo.lastModified());
+            }
+        }
+    }
+}
+
+void MainWindow::gotUploadACK(bool connected, int progressBarValue)
+{
+    connectionStatus = connected;
+    //qDebug() << "wartosc: " << progressBarValue;
+    if(connectionStatus == false)
+    {
+        QMessageBox::warning(this, "Error", "Lost connection to system.");
+        updateWindow();
+    }
+    if(progressBarValue == 100 || progressBarValue == 0)
+        actionStatus = false;
+    emit progressBarValueChanged(progressBarValue);
+}
+
+void MainWindow::downloadFile()
+{
+    if(!actionStatus)
+    {
+        QModelIndex idx = ui->remoteView->currentIndex();
+        if(idx.isValid())
+        {
+            ui->progressBar->setValue(0);
+            QMessageBox::warning(this, "Error", "Lost connection to system.");
+            //setEnabled(false);
+        }
+    }
+}
+
+
+
 
 
 

@@ -61,10 +61,21 @@ public:
     void connectToSystem(QString &login, QString &password, QString &address);
     void disconnect();
     void refresh();
+    void deleteFile(int row);
+    void uploadFile(QString fileName, qlonglong size, QDateTime lastModified);
+
+    //for PAIN
+    int getFilePartNumber()
+    {
+        return filePartNumber;
+    }
+
 signals:
     void connectedToSystemSignal(bool connected);
     void disconnectedSignal();
     void refreshedSignal(bool connected);
+    void deletedFileSignal(bool connected);
+    void gotUploadACKSignal(bool connected, int progressBarValue);
 private:
     QList<MyFileInfo> *filesList;
     QFileIconProvider *iconProvider;
@@ -76,12 +87,22 @@ private:
     TCPWorker *worker;
     //for PAIN
     QTimer *timer;
+    int filePartNumber = 0;
 
     int findFile(QString fileName) const;
+    inline void clearUserData()
+    {
+        this->login = "";
+        this->passwd = "";
+        this->address = "";
+    }
+
 private slots:
     void connectedToSystem(bool connected, QList<MyFileInfo> *userFiles);
     void disconnected();
     void refreshed(bool connected, QList<MyFileInfo> *userList);
+    void deletedFile(bool connected, QString fileName);
+    void gotUploadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
 };
 
 #endif // REMOTELISTMODEL_H

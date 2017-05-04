@@ -21,6 +21,10 @@ signals:
     void disconnectedSignal();
     void refreshSignal();
     void refreshedSignal(bool connected, QList<MyFileInfo> *userFiles);
+    void deleteFileSignal(QString fileName);
+    void deletedFileSignal(bool connected, QString fileName);
+    void uploadFileSignal(QString fileName, qlonglong size, QDateTime lastModified);
+    void gotUploadACKSignal(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
     // for PAIN
     void onTimeout();
 private:
@@ -31,12 +35,16 @@ private:
     const QString adminLogin = "admin";
     const QString adminPassword = "admin";
     QList<MyFileInfo> *userFiles;
+    QString currentFileName;
+    MyFileInfo currentFile;
     QList<MyFileInfo>* getFilesFromSystem() const;
 private slots:
     //void gotResponse(QByteArray *data);
     void connectToSystem(QString login, QString password, QString address);
     void disconnect();
     void refresh();
+    void deleteFile(QString fileName);
+    void uploadFile(QString fileName, qlonglong size, QDateTime lastModified);
     void gotResponse();
 };
 
