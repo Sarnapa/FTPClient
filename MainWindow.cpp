@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->uploadButton, SIGNAL(clicked(bool)), this, SLOT(uploadFile()));
     connect(remoteModel, SIGNAL(gotUploadACKSignal(bool, int)), this, SLOT(gotUploadACK(bool,int)));
     connect(ui->downloadButton, SIGNAL(clicked(bool)), this, SLOT(downloadFile()));
+    connect(remoteModel, SIGNAL(gotDownloadACKSignal(bool,int,QString,qlonglong,QDateTime)), this, SLOT(gotDownloadACK(bool,int,QString,qlonglong,QDateTime)));
     connect(this, SIGNAL(progressBarValueChanged(int)), ui->progressBar, SLOT(setValue(int)));
 }
 
@@ -66,6 +67,7 @@ void MainWindow::on_actionRefresh_triggered()
 {
     if(!actionStatus)
     {
+        ui->progressBar->setValue(0);
         setEnabled(false);
         remoteModel->refresh();
     }
@@ -73,7 +75,7 @@ void MainWindow::on_actionRefresh_triggered()
 
 void MainWindow::on_actionRename_triggered()
 {
-
+    // not implemented
 }
 
 void MainWindow::on_actionDelete_triggered()
@@ -91,7 +93,7 @@ void MainWindow::on_actionDelete_triggered()
 
 void MainWindow::on_actionCancel_triggered()
 {
-
+    //not implemented
 }
 
 void MainWindow::connectToSystem(QString &login, QString &password, QString &address)
@@ -164,7 +166,6 @@ void MainWindow::uploadFile()
 void MainWindow::gotUploadACK(bool connected, int progressBarValue)
 {
     connectionStatus = connected;
-    //qDebug() << "wartosc: " << progressBarValue;
     if(connectionStatus == false)
     {
         QMessageBox::warning(this, "Error", "Lost connection to system.");
@@ -179,18 +180,25 @@ void MainWindow::downloadFile()
 {
     if(!actionStatus)
     {
+        ui->progressBar->setValue(0);
         QModelIndex idx = ui->remoteView->currentIndex();
         if(idx.isValid())
         {
-            ui->progressBar->setValue(0);
-            QMessageBox::warning(this, "Error", "Lost connection to system.");
-            //setEnabled(false);
+            actionStatus = true;
+            remoteModel->downloadFile(remoteModel->fileName(idx));
         }
     }
 }
 
-
-
-
-
-
+void MainWindow::gotDownloadACK(bool connected, int progressBarValue, QString fileName, qlonglong size, QDateTime lastModified)
+{
+    connectionStatus = connected;
+    if(connectionStatus == false)
+    {
+        QMessageBox::warning(this, "Error", "Lost connection to system.");
+        updateWindow();
+    }
+    if(progressBarValue == 0 || progressBarValue == 100)
+        actionStatus = false;
+    emit progressBarValueChanged(progressBarValue);
+}

@@ -441,15 +441,11 @@ public:
         menuBar->addAction(menuFiles->menuAction());
         mainMenu->addAction(actionConnect);
         mainMenu->addAction(actionRefresh);
-        mainMenu->addAction(actionCancel);
         mainMenu->addAction(actionDisconnect);
-        menuFiles->addAction(actionRename);
         menuFiles->addAction(actionDelete);
         mainToolBar->addAction(actionConnect);
         mainToolBar->addAction(actionDisconnect);
         mainToolBar->addAction(actionRefresh);
-        mainToolBar->addAction(actionCancel);
-        mainToolBar->addAction(actionRename);
         mainToolBar->addAction(actionDelete);
 
         retranslateUi(MainWindow);

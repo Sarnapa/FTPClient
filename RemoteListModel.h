@@ -63,6 +63,7 @@ public:
     void refresh();
     void deleteFile(int row);
     void uploadFile(QString fileName, qlonglong size, QDateTime lastModified);
+    void downloadFile(QString fileName);
 
     //for PAIN
     int getFilePartNumber()
@@ -76,6 +77,7 @@ signals:
     void refreshedSignal(bool connected);
     void deletedFileSignal(bool connected);
     void gotUploadACKSignal(bool connected, int progressBarValue);
+    void gotDownloadACKSignal(bool connected, int progressBarValue, QString fileName, qlonglong size, QDateTime lastModified);
 private:
     QList<MyFileInfo> *filesList;
     QFileIconProvider *iconProvider;
@@ -103,6 +105,7 @@ private slots:
     void refreshed(bool connected, QList<MyFileInfo> *userList);
     void deletedFile(bool connected, QString fileName);
     void gotUploadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
+    void gotDownloadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
 };
 
 #endif // REMOTELISTMODEL_H

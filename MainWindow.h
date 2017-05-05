@@ -49,6 +49,7 @@ private slots:
     void uploadFile();
     void gotUploadACK(bool connected, int progressBarValue);
     void downloadFile();
+    void gotDownloadACK(bool connected, int progressBarValue, QString fileName, qlonglong size, QDateTime lastModified);
 };
 
 #endif // MAINWINDOW_H

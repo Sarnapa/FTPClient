@@ -4,11 +4,12 @@ TCPWorker::TCPWorker(QObject *parent) : QObject(parent)
 {
     //receivedData = new QByteArray();
     userFiles = getFilesFromSystem();
-    connect(this, SIGNAL(connectToSystemSignal(QString,QString,QString)), this, SLOT(connectToSystem(QString,QString,QString)));
-    connect(this, SIGNAL(disconnectSignal()), this, SLOT(disconnect()));
-    connect(this, SIGNAL(refreshSignal()), this, SLOT(refresh()));
-    connect(this, SIGNAL(deleteFileSignal(QString)), this, SLOT(deleteFile(QString)));
-    connect(this, SIGNAL(uploadFileSignal(QString,qlonglong,QDateTime)), this, SLOT(uploadFile(QString,qlonglong,QDateTime)));
+    // its not important - first version
+    //connect(this, SIGNAL(connectToSystemSignal(QString,QString,QString)), this, SLOT(connectToSystem(QString,QString,QString)));
+    //connect(this, SIGNAL(disconnectSignal()), this, SLOT(disconnect()));
+    //connect(this, SIGNAL(refreshSignal()), this, SLOT(refresh()));
+    //connect(this, SIGNAL(deleteFileSignal(QString)), this, SLOT(deleteFile(QString)));
+    //connect(this, SIGNAL(uploadFileSignal(QString,qlonglong,QDateTime)), this, SLOT(uploadFile(QString,qlonglong,QDateTime)));
 }
 
 TCPWorker::~TCPWorker()
@@ -79,9 +80,36 @@ void TCPWorker::uploadFile(QString fileName, qlonglong size, QDateTime lastModif
     }
 }
 
+void TCPWorker::downloadFile(QString fileName)
+{
+    actionId = 4;
+    if(isConnected)
+    {
+        int i;
+        for(i = 0; i < userFiles->size(); ++i)
+        {
+            MyFileInfo tmpFile = userFiles->at(i);
+            if(tmpFile.getFileName() == fileName)
+            {
+                currentFile = tmpFile;
+                break;
+            }
+        }
+        if(i != userFiles->size())
+        {
+            QFile file(path + currentFile.getFileName());
+            if(file.isOpen())
+            {
+                file.write("test");
+            }
+            file.close();
+        }
+    }
+}
+
 void TCPWorker::gotResponse()
 {
-    qDebug()<<"Worker::onTimeout get called from?: "<<QThread::currentThreadId();
+    //qDebug()<<"TCPWorker::gotResponse "<<QThread::currentThreadId();
     switch(actionId)
     {
         case 0:
@@ -95,6 +123,9 @@ void TCPWorker::gotResponse()
             break;
         case 3:
             emit gotUploadACKSignal(isConnected, currentFile.getFileName(), currentFile.getFileSize(), currentFile.getFileLastModified());
+            break;
+        case 4:
+            emit gotDownloadACKSignal(isConnected, currentFile.getFileName(), currentFile.getFileSize(), currentFile.getFileLastModified());
             break;
     }
 }

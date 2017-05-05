@@ -16,6 +16,7 @@ RemoteListModel::RemoteListModel(QObject *parent)
     connect(worker, SIGNAL(refreshedSignal(bool,QList<MyFileInfo>*)), this, SLOT(refreshed(bool,QList<MyFileInfo>*)));
     connect(worker, SIGNAL(deletedFileSignal(bool,QString)), this, SLOT(deletedFile(bool,QString)));
     connect(worker, SIGNAL(gotUploadACKSignal(bool,QString,qlonglong,QDateTime)), this, SLOT(gotUploadACK(bool,QString,qlonglong,QDateTime)));
+    connect(worker, SIGNAL(gotDownloadACKSignal(bool,QString,qlonglong,QDateTime)), this, SLOT(gotDownloadACK(bool,QString,qlonglong,QDateTime)));
     connect(timer, SIGNAL(timeout()), worker, SLOT(gotResponse()));
 }
 
@@ -278,33 +279,39 @@ void RemoteListModel::connectToSystem(QString &login, QString &password, QString
     this->passwd = password;
     this->address = address;
     timer->start(3000);
-    emit worker->connectToSystemSignal(login, password, address);
+    worker->connectToSystem(login, password, address);
 }
 
 void RemoteListModel::disconnect()
 {
-    //qDebug()<<"Liczba plikow przed usunieciem w modelu: "<<QThread::currentThreadId() << " " << filesList->size();
-    emit worker->disconnectSignal();
+    worker->disconnect();
 }
 
 void RemoteListModel::refresh()
 {
     timer->start(3000);
-    emit worker->refreshSignal();
+    worker->refresh();
 }
 
 void RemoteListModel::deleteFile(int row)
 {
     QString fileName = filesList->at(row).getFileName();
     timer->start(5000);
-    emit worker->deleteFileSignal(fileName);
+    worker->deleteFile(fileName);
 }
 
 void RemoteListModel::uploadFile(QString fileName, qlonglong size, QDateTime lastModified)
 {
     timer->setSingleShot(false);
     timer->start(500);
-    emit worker->uploadFileSignal(fileName, size, lastModified);
+    worker->uploadFile(fileName, size, lastModified);
+}
+
+void RemoteListModel::downloadFile(QString fileName)
+{
+    timer->setSingleShot(false);
+    timer->start(500);
+    worker->downloadFile(fileName);
 }
 
 void RemoteListModel::connectedToSystem(bool connected, QList<MyFileInfo>* userFiles)
@@ -315,7 +322,6 @@ void RemoteListModel::connectedToSystem(bool connected, QList<MyFileInfo>* userF
         insertRows(userFiles, userFiles->size());
     else
         clearUserData();
-    //qDebug()<<"Liczba plikow po dodaniu w modelu: "<<QThread::currentThreadId() << " " << filesList->size();
     emit connectedToSystemSignal(isConnected);
 }
 
@@ -363,7 +369,6 @@ void RemoteListModel::gotUploadACK(bool connected, QString fileName, qlonglong s
         {
             ++filePartNumber;
             value = filePartNumber * 5;
-            qDebug() << "wartosci: " << filePartNumber << " " << value;
             if(filePartNumber == 20)
             {
                 timer->stop();
@@ -382,6 +387,33 @@ void RemoteListModel::gotUploadACK(bool connected, QString fileName, qlonglong s
             removeAllRows();
         }
         emit gotUploadACKSignal(isConnected, value);
+    }
+}
+
+void RemoteListModel::gotDownloadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified)
+{
+    if(filePartNumber <= 20)
+    {
+        isConnected = connected;
+        int value = 0;
+        if(isConnected)
+        {
+            ++filePartNumber;
+            value = filePartNumber * 5;
+            if(filePartNumber == 20)
+            {
+                timer->stop();
+                timer->setSingleShot(true);
+                filePartNumber = 0;
+            }
+        }
+        else
+        {
+            filePartNumber = 0;
+            clearUserData();
+            removeAllRows();
+        }
+        emit gotDownloadACKSignal(isConnected, value, fileName, size, lastModified);
     }
 }
 
