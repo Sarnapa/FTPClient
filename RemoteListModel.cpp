@@ -16,7 +16,7 @@ RemoteListModel::RemoteListModel(QObject *parent)
     connect(worker, SIGNAL(refreshedSignal(bool,QList<MyFileInfo>*)), this, SLOT(refreshed(bool,QList<MyFileInfo>*)));
     connect(worker, SIGNAL(deletedFileSignal(bool,QString)), this, SLOT(deletedFile(bool,QString)));
     connect(worker, SIGNAL(gotUploadACKSignal(bool,QString,qlonglong,QDateTime)), this, SLOT(gotUploadACK(bool,QString,qlonglong,QDateTime)));
-    connect(worker, SIGNAL(gotDownloadACKSignal(bool,QString,qlonglong,QDateTime)), this, SLOT(gotDownloadACK(bool,QString,qlonglong,QDateTime)));
+    connect(worker, SIGNAL(gotDownloadACKSignal(bool,QString)), this, SLOT(gotDownloadACK(bool,QString)));
     connect(timer, SIGNAL(timeout()), worker, SLOT(gotResponse()));
 }
 
@@ -390,7 +390,7 @@ void RemoteListModel::gotUploadACK(bool connected, QString fileName, qlonglong s
     }
 }
 
-void RemoteListModel::gotDownloadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified)
+void RemoteListModel::gotDownloadACK(bool connected, QString fileName)
 {
     if(filePartNumber <= 20)
     {
@@ -413,7 +413,7 @@ void RemoteListModel::gotDownloadACK(bool connected, QString fileName, qlonglong
             clearUserData();
             removeAllRows();
         }
-        emit gotDownloadACKSignal(isConnected, value, fileName, size, lastModified);
+        emit gotDownloadACKSignal(isConnected, value, fileName);
     }
 }
 

@@ -77,7 +77,7 @@ signals:
     void refreshedSignal(bool connected);
     void deletedFileSignal(bool connected);
     void gotUploadACKSignal(bool connected, int progressBarValue);
-    void gotDownloadACKSignal(bool connected, int progressBarValue, QString fileName, qlonglong size, QDateTime lastModified);
+    void gotDownloadACKSignal(bool connected, int progressBarValue, QString fileName);
 private:
     QList<MyFileInfo> *filesList;
     QFileIconProvider *iconProvider;
@@ -105,7 +105,7 @@ private slots:
     void refreshed(bool connected, QList<MyFileInfo> *userList);
     void deletedFile(bool connected, QString fileName);
     void gotUploadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
-    void gotDownloadACK(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
+    void gotDownloadACK(bool connected, QString fileName);
 };
 
 #endif // REMOTELISTMODEL_H

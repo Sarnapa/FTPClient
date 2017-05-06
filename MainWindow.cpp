@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->uploadButton, SIGNAL(clicked(bool)), this, SLOT(uploadFile()));
     connect(remoteModel, SIGNAL(gotUploadACKSignal(bool, int)), this, SLOT(gotUploadACK(bool,int)));
     connect(ui->downloadButton, SIGNAL(clicked(bool)), this, SLOT(downloadFile()));
-    connect(remoteModel, SIGNAL(gotDownloadACKSignal(bool,int,QString,qlonglong,QDateTime)), this, SLOT(gotDownloadACK(bool,int,QString,qlonglong,QDateTime)));
+    connect(remoteModel, SIGNAL(gotDownloadACKSignal(bool,int,QString)), this, SLOT(gotDownloadACK(bool,int,QString)));
     connect(this, SIGNAL(progressBarValueChanged(int)), ui->progressBar, SLOT(setValue(int)));
 }
 
@@ -190,7 +190,7 @@ void MainWindow::downloadFile()
     }
 }
 
-void MainWindow::gotDownloadACK(bool connected, int progressBarValue, QString fileName, qlonglong size, QDateTime lastModified)
+void MainWindow::gotDownloadACK(bool connected, int progressBarValue, QString fileName)
 {
     connectionStatus = connected;
     if(connectionStatus == false)
@@ -198,7 +198,17 @@ void MainWindow::gotDownloadACK(bool connected, int progressBarValue, QString fi
         QMessageBox::warning(this, "Error", "Lost connection to system.");
         updateWindow();
     }
-    if(progressBarValue == 0 || progressBarValue == 100)
+    if(progressBarValue == 100)
+    {
+        actionStatus = false;
+        QFile newFile(path + fileName);
+        if(newFile.open(QIODevice::ReadWrite))
+        {
+            newFile.write("Test");
+        }
+        newFile.close();
+    }
+    else if(progressBarValue == 0)
         actionStatus = false;
     emit progressBarValueChanged(progressBarValue);
 }

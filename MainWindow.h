@@ -33,6 +33,10 @@ private:
     bool connectionStatus = false;
     bool actionStatus = false;
     void updateWindow();
+
+    // for PAIN
+    const QString path = "C:" + QString(QDir::separator()) + "Qt" + QString(QDir::separator()) + "QtProjects" + QString(QDir::separator()) +
+            "FTPClient" + QString(QDir::separator()) + "local" + QString(QDir::separator());
 private slots:
     void on_actionConnect_triggered();
     void on_actionDisconnect_triggered();
@@ -49,7 +53,7 @@ private slots:
     void uploadFile();
     void gotUploadACK(bool connected, int progressBarValue);
     void downloadFile();
-    void gotDownloadACK(bool connected, int progressBarValue, QString fileName, qlonglong size, QDateTime lastModified);
+    void gotDownloadACK(bool connected, int progressBarValue, QString fileName);
 };
 
 #endif // MAINWINDOW_H

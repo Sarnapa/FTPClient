@@ -29,7 +29,7 @@ signals:
     void refreshedSignal(bool connected, QList<MyFileInfo> *userFiles);
     void deletedFileSignal(bool connected, QString fileName);
     void gotUploadACKSignal(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
-    void gotDownloadACKSignal(bool connected, QString fileName, qlonglong size, QDateTime lastModified);
+    void gotDownloadACKSignal(bool connected, QString fileName);
     // for PAIN
     void onTimeout();
 private:
@@ -44,8 +44,6 @@ private:
     QString currentFileName;
     //for updating/downloading file
     MyFileInfo currentFile;
-    const QString path = "C:" + QString(QDir::separator()) + "Qt" + QString(QDir::separator()) + "QtProjects"  + QString(QDir::separator()) +
-                         "FTPClient" + QString(QDir::separator()) + "local";
     QList<MyFileInfo>* getFilesFromSystem() const;
 private slots:
     //void gotResponse(QByteArray *data);

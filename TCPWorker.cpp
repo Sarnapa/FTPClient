@@ -95,21 +95,11 @@ void TCPWorker::downloadFile(QString fileName)
                 break;
             }
         }
-        if(i != userFiles->size())
-        {
-            QFile file(path + currentFile.getFileName());
-            if(file.isOpen())
-            {
-                file.write("test");
-            }
-            file.close();
-        }
     }
 }
 
 void TCPWorker::gotResponse()
 {
-    //qDebug()<<"TCPWorker::gotResponse "<<QThread::currentThreadId();
     switch(actionId)
     {
         case 0:
@@ -125,7 +115,7 @@ void TCPWorker::gotResponse()
             emit gotUploadACKSignal(isConnected, currentFile.getFileName(), currentFile.getFileSize(), currentFile.getFileLastModified());
             break;
         case 4:
-            emit gotDownloadACKSignal(isConnected, currentFile.getFileName(), currentFile.getFileSize(), currentFile.getFileLastModified());
+            emit gotDownloadACKSignal(isConnected, currentFile.getFileName());
             break;
     }
 }
